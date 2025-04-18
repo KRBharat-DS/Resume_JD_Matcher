@@ -5,7 +5,7 @@ from newspaper import Article
 # And potentially 'pip install nltk' and run 'python -m nltk.downloader punkt'
 # if newspaper3k requires the NLTK tokenizer data.
 
-def extract_jd_text(url=None, manual_text=None):
+def jd_parser(url=None, manual_text=None):
     """
     Extracts Job Description text either from a URL or from manually provided text.
 
