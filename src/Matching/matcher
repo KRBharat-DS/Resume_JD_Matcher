@@ -1,0 +1,179 @@
+# --- Imports ---
+# For numerical similarity using sentence embeddings
+
+from sentence_transformers import SentenceTransformer, util
+# To access the configured Gemini model (assuming it's set up in client.py)
+# Using 'try...except' allows the script to potentially run even if llm parts fail or are unused.
+try:
+    from ..llm.client import get_model # Use relative import if client.py is in ../llm/
+    # Get the globally configured LLM model instance
+    llm_model = get_model()
+    # Check if the model was loaded successfully
+    if not llm_model:
+        print("Warning: LLM model not loaded successfully from client.py. LLM matching will fail.")
+except ImportError:
+    print("Warning: Could not import get_model from ..llm.client. LLM matching features will not be available.")
+    llm_model = None # Ensure llm_model is None if import fails
+
+# --- Sentence Transformer Model Loading ---
+# Load the Sentence Transformer model ONCE when the module is loaded.
+# This is much more efficient than loading it inside the function every time it's called.
+# 'all-MiniLM-L6-v2' is a good starting point - fast and reasonably accurate.
+try:
+    print("Loading Sentence Transformer model (all-MiniLM-L6-v2)...")
+    sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
+    print("✅ Sentence Transformer model loaded.")
+except Exception as e:
+    print(f"Error loading Sentence Transformer model: {e}")
+    sentence_model = None # Set to None if loading fails
+
+# --- Function 1: Numerical Similarity ---
+def compute_bert_similarity(resume_text, jd_text):
+    """
+    Computes the cosine similarity between resume and JD text using Sentence Transformers.
+
+    Args:
+        resume_text (str): The text content of the resume.
+        jd_text (str): The text content of the job description.
+
+    Returns:
+        float | None: The cosine similarity score (between -1 and 1, typically 0 to 1 for text),
+                      or None if the sentence# Import necessary components from the sentence-transformers library
+# SentenceTransformer loads the embedding models, util provides helper functions like cosine similarity
+from sentence_transformers import SentenceTransformer, util
+# Import the get_model function from your LLM client setup
+# This makes the dependency explicit and avoids relying on implicit global variables
+from ..llm.client import get_model # Using relative import assuming client.py is in ../llm/
+
+# --- Model Loading ---
+# Load the Sentence Transformer model once when the module is imported.
+# This is more efficient than loading it inside the function if called multiple times.
+# 'all-MiniLM-L6-v2' is a good balance of speed and performance for semantic similarity.
+print("Loading Sentence Transformer model (all-MiniLM-L6-v2)...")
+try:
+    # It's good practice to wrap model loading in try-except in case download fails
+    embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+    print("✅ Sentence Transformer model loaded successfully.")
+except Exception as e:
+    print(f"Error loading Sentence Transformer model: {e}")
+    embedding_model = None # Set to None if loading fails
+
+def compute_embedding_similarity(resume_text, jd_text):
+    """
+    Computes the semantic similarity between resume and job description text
+    using sentence embeddings (SentenceTransformer model).
+
+    Args:
+        resume_text (str): The text content of the resume.
+        jd_text (str): The text content of the job description.
+
+    Returns:
+        float | None: The cosine similarity score (typically between 0.0 and 1.0 for text),
+                      or None if the embedding model failed to load.
+    """
+    # Check if the embedding model was loaded successfully
+    if embedding_model is None:
+        print("Error: Sentence Transformer model not available.")
+        return None
+
+    try:
+        print("Encoding resume and JD text for similarity calculation...")
+        # Encode both texts into vector embeddings. convert_to_tensor=True is efficient for util.cos_sim.
+        embeddings = embedding_model.encode([resume_text, jd_text], convert_to_tensor=True)
+
+        # Calculate the cosine similarity between the two embeddings
+        # embeddings[0] is the resume embedding, embeddings[1] is the JD embedding
+        # .item() extracts the scalar value from the resulting tensor (e.g., tensor([[0.75]]))
+        similarity_score = util.cos_sim(embeddings[0], embeddings[1]).item()
+        print(f"Computed embedding similarity score: {similarity_score:.4f}")
+
+        return similarity_score
+    except Exception as e:
+        print(f"Error computing embedding similarity: {e}")
+        return None
+
+
+# --- Approach 2: LLM-based Matching Analysis ---
+
+def match_resume_with_jd_llm(resume_text, jd_text):
+    """
+    Uses a Generative Language Model (Gemini) to analyze the match between
+    a resume and a job description, providing a score, explanation, and missing factors.
+
+    Args:
+        resume_text (str): The text content of the resume.
+        jd_text (str): The text content of the job description.
+
+    Returns:
+        str | None: The analysis text generated by the LLM, or None if the LLM
+                    model is not available or an error occurs during generation.
+    """
+    # Get the configured LLM model instance from the client module
+    llm_model = get_model()
+
+    # Check if the LLM model was successfully instantiated in client.py
+    if not llm_model:
+        print("Error: LLM model not available. Cannot perform LLM-based matching.")
+        return None
+
+    # Define the prompt for the LLM
+    # This prompt guides the LLM to act as a recruiter and provide specific outputs.
+    prompt = f"""
+    Analyze the following resume and job description. Act as an expert talent acquisition specialist providing a concise evaluation for a hiring manager.
+
+    **Resume Text:**
+    ---
+    {resume_text}
+    ---
+
+    **Job Description Text:**
+    ---
+    {jd_text}
+    ---
+
+    **Your Task:**
+    1.  Provide an overall **Match Score** (out of 100) representing the candidate's suitability based *only* on the provided texts.
+    2.  Write a brief **Explanation** (2-3 sentences) justifying the score, highlighting key strengths or weaknesses.
+    3.  List the most critical **Missing Factors** (keywords, skills, qualifications, or experience mentioned in the JD but seemingly absent in the candidate's resume). If there are no significant missing factors, state that.
+    4.  Refer to the person who submitted the resume as "the candidate" or "the applicant". Do not invent or use a name.
+
+    **Output Format:**
+    Strictly follow this format:
+
+    Match Score: [Score]/100
+    Explanation: [Your explanation here]
+    Missing Factors: [Bulleted list of missing factors, or "None apparent."]
+    """
+
+    try:
+        print("Sending request to LLM for resume-JD analysis...")
+        # Send the prompt to the Gemini model
+        response = llm_model.generate_content(prompt)
+        # Extract the generated text content
+        analysis_text = response.text
+        print("✅ LLM analysis received.")
+        return analysis_text
+
+    except Exception as e:
+        # Handle potential errors during the API call (e.g., network issues, API errors)
+        print(f"Error generating LLM response for matching: {e}")
+        return None
+
+# Example Usage (optional, for testing this script directly)
+# if __name__ == '__main__':
+#     # Dummy text for testing
+#     sample_resume = "Experienced Python developer with 5 years of experience in web development using Django and Flask. Proficient in SQL and Git. Bachelor's degree in Computer Science."
+#     sample_jd = "Seeking a Senior Python Developer with 7+ years of experience. Must have expertise in Django, REST APIs, PostgreSQL, Docker, and AWS. Experience with microservices is a plus. Master's degree preferred."
+
+#     print("\n--- Testing Embedding Similarity ---")
+#     similarity = compute_embedding_similarity(sample_resume, sample_jd)
+#     if similarity is not None:
+#         print(f"Similarity Score: {similarity:.4f}")
+
+#     print("\n--- Testing LLM Analysis ---")
+#     # Ensure your .env file is set up and client.py ran successfully for this part
+#     llm_analysis = match_resume_with_jd_llm(sample_resume, sample_jd)
+#     if llm_analysis:
+#         print(llm_analysis)
+#     else:
+#         print("LLM analysis failed (check API key and client setup).")
