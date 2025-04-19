@@ -28,7 +28,7 @@ try:
     from parsing.jd_parser import jd_parser
     from matching.matcher import compute_embedding_similarity
     from matching.matcher import match_resume_with_jd_llm
-    #from matching.matcher import improve_resume_text
+    from matching.matcher import improve_resume_text
     print("✅ Successfully imported backend functions (in minimal test).")
 except ImportError as e:
     # This st.error() can now run because 'st' is defined above
