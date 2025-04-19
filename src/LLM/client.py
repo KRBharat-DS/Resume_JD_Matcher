@@ -1,80 +1,41 @@
-# Import the Google Generative AI library
+# src/LLM/client.py
+
 import google.generativeai as genai
-# Import the os library to access environment variables
 import os
-# Import the function to load environment variables from a .env file
 from dotenv import load_dotenv
 
-# --- Load Environment Variables ---
-# Load variables from the .env file into the environment.
-# This should be called early, ideally once at the start of the application or module.
-# Make sure you have a .env file in your project root with GEMAI_API_KEY=your_actual_key
+print("DEBUG: Starting src.LLM.client execution...") # Add print at very top
+
 load_dotenv()
-
-# --- Get API Key ---
-# Retrieve the API key from the environment variables.
-# Using os.getenv is the secure way to handle secrets, avoiding hardcoding.
-# Ensure the variable name "GEMAI_API_KEY" matches exactly what's in your .env file.
 api_key = os.getenv("GEMAI_API_KEY")
-
-# --- API Key Validation and Configuration ---
-# Initialize the model variable to None. It will be set only if the API key is valid.
 model = None
 
 if not api_key:
-    # If the API key was not found in the environment variables
-    # Print an error message. Using st.error() in the main Streamlit app would be better for user feedback.
-    # *** Correction: The error message mentions OPENAI_API_KEY, but you are loading GEMAI_API_KEY. Update the message. ***
-    print("Error: GEMAI_API_KEY environment variable not found.")
-    # Depending on the application structure, you might raise an Exception here
-    # raise ValueError("GEMAI_API_KEY not found. Please set the environment variable.")
-    # Or handle it in the calling code (e.g., disable LLM features in Streamlit)
-
+    print("ERROR in client.py: GEMAI_API_KEY environment variable not found.")
+    # --- RAISE AN ERROR ---
+    # This will stop execution and show up clearly
+    raise ValueError("CRITICAL: GEMAI_API_KEY environment variable not found. Please check your .env file.")
 else:
-    # If the API key was found successfully
     try:
-        # Configure the Google Generative AI library with the retrieved API key.
-        # This step authenticates your requests to the Gemini API.
-        print("GEMAI_API_KEY loaded. Configuring Google Generative AI...") # Added print statement
+        print("DEBUG in client.py: API Key found. Configuring Google GenAI...")
         genai.configure(api_key=api_key)
 
-        # --- Instantiate the Model ---
-        # Create an instance of the desired Gemini model.
-        # "gemini-1.5-pro-latest" is a powerful model, ensure it fits your usage needs and budget.
-        # Other models like "gemini-pro" might also be suitable depending on the task.
-        print("Instantiating Gemini model (gemini-1.5-pro-latest)...") # Added print statement
+        print("DEBUG in client.py: Instantiating Gemini model...")
+        # Ensure the model name is correct and available to your key
         model = genai.GenerativeModel("gemini-1.5-pro-latest")
-        print("✅ Google Generative AI client configured and model instantiated successfully.")
+        print("✅ SUCCESS in client.py: Gemini client configured and model instantiated.")
 
     except Exception as e:
-        # Catch potential errors during configuration or model instantiation
-        # (e.g., invalid API key format, network issues connecting to Google)
-        print(f"Error configuring Google Generative AI or instantiating model: {e}")
-        # Ensure the model remains None if configuration fails
-        model = None
+        print(f"ERROR in client.py: Failed to configure/instantiate Gemini model. Exception: {e}")
+        # --- RAISE AN ERROR ---
+        # Wrap the original exception for more context
+        raise RuntimeError(f"CRITICAL: Failed to configure/instantiate Gemini model: {e}") from e
 
-# --- Optional: Function to get the model ---
-# This can be helpful if other modules need to access the configured model.
 def get_model():
     """Returns the instantiated GenerativeModel object, or None if setup failed."""
-    if not model:
-        print("Warning: get_model() called, but the model is not configured/instantiated.")
+    # This function now primarily relies on whether 'model' was successfully assigned above.
+    # The explicit checks for None happen where get_model() is called (e.g., in matcher.py)
+    print(f"DEBUG: get_model() called. Returning model object (type: {type(model)}).") # See what type it is
     return model
 
-# Example Usage (optional, for testing this script directly)
-# if __name__ == '__main__':
-#     test_model = get_model()
-#     if test_model:
-#         print("\n--- Model Object ---")
-#         print(test_model)
-#         # You could potentially try a simple generation here for a full test,
-#         # but be mindful of API costs.
-#         # try:
-#         #     response = test_model.generate_content("Explain what an LLM is in one sentence.")
-#         #     print("\n--- Test Generation ---")
-#         #     print(response.text)
-#         # except Exception as e:
-#         #     print(f"Test generation failed: {e}")
-#     else:
-#         print("\n--- Model Not Available ---")
-
+print("DEBUG: Finished src.LLM.client execution.") # Add print at very end
