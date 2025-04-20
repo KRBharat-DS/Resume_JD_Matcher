@@ -15,11 +15,9 @@ This Streamlit application helps users analyze how well a resume matches a given
 
 ## 📸 Screenshots
 
-*(**TODO:** Add 1-3 screenshots of your application here! This significantly helps users understand what it looks like.)*
 
 Example:
-`![App Screenshot 1](path/to/your/screenshot1.png)`
-`![App Screenshot 2](path/to/your/screenshot2.png)`
+`![App Screenshot](images/screenshot.png)`
 
 ## 🛠️ Technology Stack
 
