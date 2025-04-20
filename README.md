@@ -17,7 +17,7 @@ This Streamlit application helps users analyze how well a resume matches a given
 
 
 Example:
-`![App Screenshot](images/RJD_screenshot.png)`
+`![App Screenshot](images/RJD_Screenshot.png)`
 
 ## 🛠️ Technology Stack
 
